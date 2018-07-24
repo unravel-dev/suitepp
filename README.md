@@ -1,8 +1,8 @@
-### suitepp - c++11 header only unit testing library
+# suitepp - c++11 header only unit testing library
 
-#No dependecnies 1 small header only
+### No dependecnies, just 1 small header only
 
-#Provides a simple api and a semi-decent output that does the job.
+### Provides a simple api and a semi-decent output that does the job.
 
 ```C++
 int main()
