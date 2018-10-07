@@ -309,7 +309,7 @@ public:
 
 		get(ok ? PASSED : FAILED)++;
 
-		fprintf(stdout, "%s", ok ? "[ OK ] " : "[FAIL] ");
+		fprintf(stdout, "%s ", ok ? "[ OK ]" : "[FAIL]");
 		fprintf(stdout, "check (%s) ", label_.c_str());
 		fprintf(stdout, "(%sms) ", to_string(duration_.count()).c_str());
 
@@ -343,7 +343,16 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 	auto title = text;
 	if(title.empty())
 		title = "Test";
-	fprintf(stdout, "-------------- %s --------------\n", title.c_str());
+
+    title = ("[[ " + title + " ]]");
+
+    std::string sep;
+    sep.append(title.size(), '-');
+    sep.append("\n");
+    fprintf(stdout, "\n");
+	fprintf(stdout, sep.c_str());
+    fprintf(stdout, "%s\n", title.c_str());
+    fprintf(stdout, sep.c_str());
 
 	auto whole_case = [&]() {
 		auto fails_before = get(FAILED);
@@ -351,7 +360,9 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 		auto fails_after = get(FAILED);
 		return fails_before == fails_after;
 	};
-	EXPECT(whole_case()).set_label("total");
+    whole_case();
+    fprintf(stdout, sep.c_str());
+
 	return true;
 }
 }
