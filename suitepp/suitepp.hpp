@@ -345,9 +345,8 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 		title = "Test";
 
     title = ("[[ " + title + " ]]");
-
     std::string sep;
-    sep.append(title.size(), '-');
+    sep.append(40, '-');
     sep.append("\n");
     fprintf(stdout, "\n");
 	fprintf(stdout, sep.c_str());
