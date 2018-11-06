@@ -53,39 +53,61 @@
 		SUITEPP_POP_PRAGMA                                                                                   \
 		return res;                                                                                          \
 	})
-
-#define EXPECT(expr) SUITEPP_EXPECT(expr)
-
-#define THROWS(expr)                                                                                         \
-	[&]() {                                                                                                  \
+#define SUITEPP_EXPECT_THROWS(expr)                                                                          \
+	suitepp::check(#expr, __FILE__, __LINE__, [&]() {                                                        \
+		SUITEPP_PUSH_PRAGMA                                                                                  \
+		SUITEPP_DISABLE_WARNING("-Wparentheses", "-Wparentheses", 4554)                                      \
 		try                                                                                                  \
 		{                                                                                                    \
 			expr;                                                                                            \
 		}                                                                                                    \
 		catch(...)                                                                                           \
 		{                                                                                                    \
-			return true;                                                                                     \
+			return suitepp::result{true, #expr};                                                             \
 		}                                                                                                    \
-		return false;                                                                                        \
-	}()
+		return suitepp::result{false, #expr " expected to throw but did not"};                               \
+		SUITEPP_POP_PRAGMA                                                                                   \
+	})
 
-#define THROWS_AS(expr, exception_type)                                                                      \
-	[&]() {                                                                                                  \
+#define SUITEPP_EXPECT_THROWS_AS(expr, exception_type)                                                       \
+	suitepp::check(#expr, __FILE__, __LINE__, [&]() {                                                        \
+		SUITEPP_PUSH_PRAGMA                                                                                  \
+		SUITEPP_DISABLE_WARNING("-Wparentheses", "-Wparentheses", 4554)                                      \
 		try                                                                                                  \
 		{                                                                                                    \
 			expr;                                                                                            \
 		}                                                                                                    \
 		catch(const exception_type&)                                                                         \
 		{                                                                                                    \
-			return true;                                                                                     \
+			return suitepp::result{true, #expr};                                                             \
 		}                                                                                                    \
 		catch(...)                                                                                           \
 		{                                                                                                    \
 		}                                                                                                    \
-		return false;                                                                                        \
-	}()
+		return suitepp::result{false, #expr " expected to throw " #exception_type " but did not"};           \
+		SUITEPP_POP_PRAGMA                                                                                   \
+	})
 
-#define NOTHROWS(expr) !THROWS(expr)
+#define SUITEPP_EXPECT_NOTHROWS(expr)                                                                        \
+	suitepp::check(#expr, __FILE__, __LINE__, [&]() {                                                        \
+		SUITEPP_PUSH_PRAGMA                                                                                  \
+		SUITEPP_DISABLE_WARNING("-Wparentheses", "-Wparentheses", 4554)                                      \
+		try                                                                                                  \
+		{                                                                                                    \
+			expr;                                                                                            \
+		}                                                                                                    \
+		catch(...)                                                                                           \
+		{                                                                                                    \
+			return suitepp::result{false, #expr};                                                            \
+		}                                                                                                    \
+		return suitepp::result{true, #expr " expected to not to throw but did"};                             \
+		SUITEPP_POP_PRAGMA                                                                                   \
+	})
+
+#define EXPECT(expr) SUITEPP_EXPECT(expr)
+#define EXPECT_THROWS(expr) SUITEPP_EXPECT_THROWS(expr)
+#define EXPECT_THROWS_AS(expr, exception_type) SUITEPP_EXPECT_THROWS_AS(expr, exception_type)
+#define EXPECT_NOTHROWS(expr) SUITEPP_EXPECT_NOTHROWS(expr)
 
 namespace suitepp
 {
@@ -206,6 +228,11 @@ inline unsigned& get(int i)
 
 struct result
 {
+    result() = default;
+    result(bool p, const std::string& dec)
+        : passed(p)
+        , decomposition(dec)
+    {}
 	bool passed = false;
 	std::string decomposition;
 };
@@ -292,7 +319,8 @@ public:
 		static summary_reporter reporter;
 		(void)reporter;
 
-		set_label(to_string(get(TESTNO)++));
+        get(TESTNO)++;
+		set_label(text_);//to_string(get(TESTNO)++));
 	}
 
 	~check()
@@ -300,31 +328,46 @@ public:
 		if(text_.empty() || result_getter_ == nullptr)
 			return;
 
-		auto start = timer::now();
-		auto result = result_getter_();
-		auto end = timer::now();
-		duration_ = std::chrono::duration_cast<duration_t>(end - start);
-
-		bool ok = result.passed;
-
-		get(ok ? PASSED : FAILED)++;
-
-		fprintf(stdout, "%s ", ok ? "[ OK ]" : "[FAIL]");
-		fprintf(stdout, "check (%s) ", label_.c_str());
-		fprintf(stdout, "(%sms) ", to_string(duration_.count()).c_str());
-
-		if(!ok)
+		for(int i = 0; i < iterations_; ++i)
 		{
-			fprintf(stdout, "at %s:%d\n", file_.c_str(), line_);
-			fprintf(stdout, "       %s\n", text_.c_str());
-			fprintf(stdout, "       %s\n", result.decomposition.c_str());
+
+			auto start = timer::now();
+			auto result = result_getter_();
+			auto end = timer::now();
+			duration_ = std::chrono::duration_cast<duration_t>(end - start);
+
+			bool ok = result.passed;
+
+			get(ok ? PASSED : FAILED)++;
+
+			fprintf(stdout, "%s ", ok ? "[ OK ]" : "[FAIL]");
+			if(iterations_ > 1)
+			{
+				fprintf(stdout, "check %s (%d) ", label_.c_str(), i);
+			}
+			else
+			{
+				fprintf(stdout, "check %s ", label_.c_str());
+			}
+			fprintf(stdout, "(%sms) ", to_string(duration_.count()).c_str());
+
+			if(!ok)
+			{
+				fprintf(stdout, "at %s:%d\n", file_.c_str(), line_);
+				fprintf(stdout, "       %s\n", result.decomposition.c_str());
+			}
+			fprintf(stdout, "%s", "\n");
 		}
-		fprintf(stdout, "%s", "\n");
 	}
 
 	check& set_label(const std::string& name)
 	{
 		label_ = name;
+		return *this;
+	}
+	check& repeat(int iterations)
+	{
+		iterations_ = iterations;
 		return *this;
 	}
 
@@ -335,6 +378,7 @@ private:
 	std::string text_;
 	std::string label_;
 	std::string file_;
+	int iterations_ = 1;
 	int line_ = 0;
 };
 
@@ -344,14 +388,14 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 	if(title.empty())
 		title = "Test";
 
-    title = ("[[ " + title + " ]]");
-    std::string sep;
-    sep.append(40, '-');
-    sep.append("\n");
-    fprintf(stdout, "\n");
+	title = ("[[ " + title + " ]]");
+	std::string sep;
+	sep.append(40, '-');
+	sep.append("\n");
+	fprintf(stdout, "\n");
 	fprintf(stdout, sep.c_str());
-    fprintf(stdout, "%s\n", title.c_str());
-    fprintf(stdout, sep.c_str());
+	fprintf(stdout, "%s\n", title.c_str());
+	fprintf(stdout, sep.c_str());
 
 	auto whole_case = [&]() {
 		auto fails_before = get(FAILED);
@@ -359,8 +403,8 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 		auto fails_after = get(FAILED);
 		return fails_before == fails_after;
 	};
-    whole_case();
-    fprintf(stdout, sep.c_str());
+	whole_case();
+	fprintf(stdout, sep.c_str());
 
 	return true;
 }
