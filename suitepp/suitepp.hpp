@@ -393,9 +393,9 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 	sep.append(40, '-');
 	sep.append("\n");
 	fprintf(stdout, "\n");
-	fprintf(stdout, sep.c_str());
+	fprintf(stdout, "%s", sep.c_str());
 	fprintf(stdout, "%s\n", title.c_str());
-	fprintf(stdout, sep.c_str());
+	fprintf(stdout, "%s", sep.c_str());
 
 	auto whole_case = [&]() {
 		auto fails_before = get(FAILED);
@@ -404,7 +404,7 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 		return fails_before == fails_after;
 	};
 	whole_case();
-	fprintf(stdout, sep.c_str());
+	fprintf(stdout, "%s", sep.c_str());
 
 	return true;
 }
