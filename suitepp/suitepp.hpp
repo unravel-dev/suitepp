@@ -1,5 +1,3 @@
-#include <utility>
-
 #ifndef SUITEPP_HPP
 #define SUITEPP_HPP
 
@@ -11,6 +9,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define SUITEPP_STR(s) #s
@@ -49,10 +48,10 @@
 	suitepp::check(#expr, __FILE__, __LINE__, [&]() {                                                        \
 		SUITEPP_PUSH_PRAGMA                                                                                  \
 		SUITEPP_DISABLE_WARNING("-Wparentheses", "-Wparentheses", 4554)                                      \
-		auto res = SUITEPP_DECOMPOSE(expr);                                                                  \
+		return SUITEPP_DECOMPOSE(expr);                                                                      \
 		SUITEPP_POP_PRAGMA                                                                                   \
-		return res;                                                                                          \
 	})
+
 #define SUITEPP_EXPECT_THROWS(expr)                                                                          \
 	suitepp::check(#expr, __FILE__, __LINE__, [&]() {                                                        \
 		SUITEPP_PUSH_PRAGMA                                                                                  \
@@ -112,7 +111,7 @@
 namespace suitepp
 {
 
-using timer = std::chrono::high_resolution_clock;
+using timer = std::chrono::steady_clock;
 
 template <typename T>
 struct is_container
@@ -228,11 +227,12 @@ inline unsigned& get(int i)
 
 struct result
 {
-    result() = default;
-    result(bool p, const std::string& dec)
-        : passed(p)
-        , decomposition(dec)
-    {}
+	result() = default;
+	result(bool p, const std::string& dec)
+		: passed(p)
+		, decomposition(dec)
+	{
+	}
 	bool passed = false;
 	std::string decomposition;
 };
@@ -319,8 +319,8 @@ public:
 		static summary_reporter reporter;
 		(void)reporter;
 
-        get(TESTNO)++;
-		set_label(text_);//to_string(get(TESTNO)++));
+		get(TESTNO)++;
+		set_label(text_); // to_string(get(TESTNO)++));
 	}
 
 	~check()
