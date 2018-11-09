@@ -390,7 +390,7 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 
 	title = ("[[ " + title + " ]]");
 	std::string sep;
-	sep.append(40, '-');
+	sep.append(title.size(), '-');
 	sep.append("\n");
 	fprintf(stdout, "\n");
 	fprintf(stdout, "%s", sep.c_str());
