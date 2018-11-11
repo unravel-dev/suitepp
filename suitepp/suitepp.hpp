@@ -128,14 +128,14 @@ struct is_container
 };
 
 template <typename T, typename R>
-using ForNonContainerNonPointer = typename std::enable_if<
+using for_non_container_non_pointer = typename std::enable_if<
 	!(is_container<T>::value || std::is_pointer<T>::value || std::is_null_pointer<T>::value), R>::type;
 
 template <typename T, typename R>
-using ForPointer = typename std::enable_if<std::is_pointer<T>::value, R>::type;
+using for_pointer = typename std::enable_if<std::is_pointer<T>::value, R>::type;
 
 template <typename T, typename R>
-using ForContainer = typename std::enable_if<is_container<T>::value, R>::type;
+using for_container = typename std::enable_if<is_container<T>::value, R>::type;
 
 template <typename T>
 inline std::string make_string(T const* ptr)
@@ -167,14 +167,14 @@ inline std::string to_string(char const& txt)
 }
 
 template <typename T>
-auto to_string(const T& t) -> ForNonContainerNonPointer<T, std::string>
+auto to_string(const T& t) -> for_non_container_non_pointer<T, std::string>
 {
 	std::stringstream ss;
 	return (ss << std::boolalpha << t) ? ss.str() : std::string("??");
 }
 
 template <typename T>
-auto to_string(const T& ptr) -> ForPointer<T, std::string>
+auto to_string(const T& ptr) -> for_pointer<T, std::string>
 {
 	return !ptr ? to_string(nullptr) : make_string(ptr);
 }
@@ -188,7 +188,7 @@ auto to_string(std::pair<T1, T2> const& pair) -> std::string
 }
 
 template <typename C>
-auto to_string(C const& cont) -> ForContainer<C, std::string>
+auto to_string(C const& cont) -> for_container<C, std::string>
 {
 	std::ostringstream os;
 	os << "{ ";
@@ -215,13 +215,13 @@ auto to_string(const L& lhs, std::string op, const R& rhs) -> std::string
 
 enum test_status
 {
-	FAILED,
-	PASSED,
-	TESTNO
+	failed,
+	passed,
+	testno
 };
 inline unsigned& get(int i)
 {
-	static unsigned var[TESTNO + 1] = {0, 0, 0};
+	static unsigned var[testno + 1] = {0, 0, 0};
 	return var[i];
 }
 
@@ -250,8 +250,8 @@ struct expression_lhs
 
 	const L lhs;
 
-	expression_lhs(L lhs_)
-		: lhs(lhs_)
+	expression_lhs(L lh)
+		: lhs(lh)
 	{
 	}
 
@@ -294,16 +294,16 @@ class check
 	{
 		~summary_reporter()
 		{
-			std::string run = to_string(get(TESTNO));
-			std::string res = get(FAILED) ? "[FAIL]  " : "[ OK ]  ";
+			std::string run = to_string(get(testno));
+			std::string res = get(failed) ? "[FAIL]  " : "[ OK ]  ";
 			std::string ss;
-			if(get(FAILED))
-				ss += res + "Failure! " + to_string(get(FAILED)) + '/' + run + " checks failed :(\n";
+			if(get(failed))
+				ss += res + "Failure! " + to_string(get(failed)) + '/' + run + " checks failed :(\n";
 			else
 				ss += res + "Success: " + run + " checks passed :)\n";
 			fprintf(stdout, "\n%s", ss.c_str());
-			if(get(FAILED))
-				std::exit(int(get(FAILED)));
+			if(get(failed))
+				std::exit(int(get(failed)));
 		}
 	};
 
@@ -319,7 +319,7 @@ public:
 		static summary_reporter reporter;
 		(void)reporter;
 
-		get(TESTNO)++;
+		get(testno)++;
 		set_label(text_); // to_string(get(TESTNO)++));
 	}
 
@@ -338,7 +338,7 @@ public:
 
 			bool ok = result.passed;
 
-			get(ok ? PASSED : FAILED)++;
+			get(ok ? passed : failed)++;
 
 			fprintf(stdout, "%s ", ok ? "[ OK ]" : "[FAIL]");
 			if(iterations_ > 1)
@@ -398,9 +398,9 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 	fprintf(stdout, "%s", sep.c_str());
 
 	auto whole_case = [&]() {
-		auto fails_before = get(FAILED);
+		auto fails_before = get(failed);
 		fn();
-		auto fails_after = get(FAILED);
+		auto fails_after = get(failed);
 		return fails_before == fails_after;
 	};
 	whole_case();
