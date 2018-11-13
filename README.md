@@ -7,48 +7,40 @@
 ```C++
 int main()
 {
-	suitepp::test("test1", []()
-	{
-		int a = 12;
-		EXPECT(a == 12);
-		EXPECT(a <= 15);
-		auto expression = []()
-		{
-			//some code
-		};
-		EXPECT(NOTHROWS(expression()));
-		EXPECT(THROWS(expression()));
-		EXPECT(THROWS_AS(expression(), std::exception));
-	});
-	return 0;
+    suitepp::test("test1", []()
+    {
+        int a = 12;
+        EXPECT(a == 12);
+        EXPECT(a >= 15);
+        auto expression = []()
+        {
+            //some code
+        };
+        EXPECT_NOTHROWS(expression());
+        EXPECT_THROWS(expression());
+        EXPECT_THROWS_AS(expression(), std::exception);
+    });
+    return 0;
 }
 ```
 
 would output something like
 ```C++
--------------- test1 --------------
-[ OK ] check (1) (0.0463ms)
-[FAIL] check (2) (0.0437ms) at D:\Workspace\Repositories\suitepp\suitepp\tests\tests\main.cpp:13
-       a > 15
-       12 > 15
+-----------
+[[ test1 ]]
+-----------
+[ OK ] check a == 12 (0.0765ms) 
+[FAIL] check a >= 15 (0.0013ms) at D:/Workspace/Repositories/dynopp/dynopp/tests/main.cpp:112
+       12 >= 15
 
-[ OK ] check (3) (0.031ms)
-[FAIL] check (4) (0.0326ms) at D:\Workspace\Repositories\suitepp\suitepp\tests\tests\main.cpp:15
-       (a < 15) && (a == 10)
-       true && false
+[ OK ] check expression() (0.0004ms) 
+[FAIL] check expression() (0.0004ms) at D:/Workspace/Repositories/dynopp/dynopp/tests/main.cpp:118
+       expression() expected to throw but did not
 
-[ OK ] check (5) (0.0129ms)
-[FAIL] check (6) (0.0141ms) at D:\Workspace\Repositories\suitepp\suitepp\tests\tests\main.cpp:22
-       [&]() { try { expression(); } catch(...) { return true; } return false; }()
-       false
+[FAIL] check expression() (0.0004ms) at D:/Workspace/Repositories/dynopp/dynopp/tests/main.cpp:119
+       expression() expected to throw std::exception but did not
 
-[FAIL] check (7) (0.0137ms) at D:\Workspace\Repositories\suitepp\suitepp\tests\tests\main.cpp:23
-       [&]() { try { expression(); } catch(const std::exception&) { return true; } catch(...) { } return false; }()
-       false
+-----------
 
-[FAIL] check (total) (3.1737ms) at d:\workspace\repositories\suitepp\suitepp\tests\tests\suitepp/suitepp.hpp:354
-       whole_case()
-       false
-	   
-[FAIL]  Failure! 5/8 checks failed :(
+[FAIL]  Failure! 3/5 checks failed :(
 ```
