@@ -319,7 +319,6 @@ public:
 		static summary_reporter reporter;
 		(void)reporter;
 
-		get(testno)++;
 		set_label(text_); // to_string(get(TESTNO)++));
 	}
 
@@ -330,6 +329,7 @@ public:
 
 		for(int i = 0; i < iterations_; ++i)
 		{
+            get(testno)++;
 
 			auto start = timer::now();
 			auto result = result_getter_();
