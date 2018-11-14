@@ -138,6 +138,17 @@ template <typename T, typename R>
 using for_container = typename std::enable_if<is_container<T>::value, R>::type;
 
 template <typename T>
+auto to_string(const T& t) -> for_non_container_non_pointer<T, std::string>;
+template <typename T>
+auto to_string(const T& ptr) -> for_pointer<T, std::string>;
+template <typename T1, typename T2>
+auto to_string(std::pair<T1, T2> const& pair) -> std::string;
+template <typename C>
+auto to_string(C const& cont) -> for_container<C, std::string>;
+template <typename L, typename R>
+auto to_string(const L& lhs, std::string op, const R& rhs) -> std::string;
+
+template <typename T>
 inline std::string make_string(T const* ptr)
 {
 	// Note showbase affects the behavior of /integer/ output;
@@ -171,6 +182,13 @@ auto to_string(const T& t) -> for_non_container_non_pointer<T, std::string>
 {
 	std::stringstream ss;
 	return (ss << std::boolalpha << t) ? ss.str() : std::string("??");
+}
+
+template <typename Rep, typename Period>
+auto to_string(const std::chrono::duration<Rep, Period>& t)
+{
+	std::stringstream ss;
+	return (ss << std::boolalpha << t.count()) ? ss.str() : std::string("??");
 }
 
 template <typename T>
