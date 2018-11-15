@@ -64,7 +64,7 @@
 		{                                                                                                    \
 			return suitepp::result{true, #expr};                                                             \
 		}                                                                                                    \
-		return suitepp::result{false, #expr " expected to throw but did not"};                               \
+		return suitepp::result{false, #expr " expected to throw but did not."};                              \
 		SUITEPP_POP_PRAGMA                                                                                   \
 	})
 
@@ -83,7 +83,7 @@
 		catch(...)                                                                                           \
 		{                                                                                                    \
 		}                                                                                                    \
-		return suitepp::result{false, #expr " expected to throw " #exception_type " but did not"};           \
+		return suitepp::result{false, #expr " expected to throw " #exception_type " but did NOT."};          \
 		SUITEPP_POP_PRAGMA                                                                                   \
 	})
 
@@ -95,11 +95,16 @@
 		{                                                                                                    \
 			expr;                                                                                            \
 		}                                                                                                    \
+		catch(const std::exception& e)                                                                       \
+		{                                                                                                    \
+			return suitepp::result{false,                                                                    \
+								   std::string(#expr " expected NOT to throw but did : ") + e.what()};       \
+		}                                                                                                    \
 		catch(...)                                                                                           \
 		{                                                                                                    \
-			return suitepp::result{false, #expr};                                                            \
+			return suitepp::result{false, #expr " expected NOT to throw but did."};                          \
 		}                                                                                                    \
-		return suitepp::result{true, #expr " expected to not to throw but did"};                             \
+		return suitepp::result{true, #expr};                                                                 \
 		SUITEPP_POP_PRAGMA                                                                                   \
 	})
 
@@ -347,7 +352,7 @@ public:
 
 		for(int i = 0; i < iterations_; ++i)
 		{
-            get(testno)++;
+			get(testno)++;
 
 			auto start = timer::now();
 			auto result = result_getter_();
