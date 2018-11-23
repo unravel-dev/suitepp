@@ -133,8 +133,18 @@ struct is_container
 };
 
 template <typename T, typename R>
-using for_non_container_non_pointer = typename std::enable_if<
-	!(is_container<T>::value || std::is_pointer<T>::value || std::is_null_pointer<T>::value), R>::type;
+using for_non_container_non_pointer_fundamental =
+	typename std::enable_if<std::is_fundamental<T>::value &&
+								!(is_container<T>::value || std::is_pointer<T>::value ||
+								  std::is_null_pointer<T>::value),
+							R>::type;
+
+template <typename T, typename R>
+using for_non_container_non_pointer_non_fundamental =
+	typename std::enable_if<!std::is_fundamental<T>::value &&
+								!(is_container<T>::value || std::is_pointer<T>::value ||
+								  std::is_null_pointer<T>::value),
+							R>::type;
 
 template <typename T, typename R>
 using for_pointer = typename std::enable_if<std::is_pointer<T>::value, R>::type;
@@ -143,7 +153,9 @@ template <typename T, typename R>
 using for_container = typename std::enable_if<is_container<T>::value, R>::type;
 
 template <typename T>
-auto to_string(const T& t) -> for_non_container_non_pointer<T, std::string>;
+auto to_string(const T& t) -> for_non_container_non_pointer_fundamental<T, std::string>;
+template <typename T>
+auto to_string(const T& t) -> for_non_container_non_pointer_non_fundamental<T, std::string>;
 template <typename T>
 auto to_string(const T& ptr) -> for_pointer<T, std::string>;
 template <typename T1, typename T2>
@@ -179,14 +191,25 @@ inline std::string to_string(char const* const& txt)
 
 inline std::string to_string(char const& txt)
 {
-	return "\'" + std::string(1, txt) + "\'";
+	return "\'" + std::to_string(txt) + "\'";
+}
+
+inline std::string to_string(unsigned char const& txt)
+{
+	return std::to_string(txt);
 }
 
 template <typename T>
-auto to_string(const T& t) -> for_non_container_non_pointer<T, std::string>
+auto to_string(const T& t) -> for_non_container_non_pointer_fundamental<T, std::string>
 {
 	std::stringstream ss;
 	return (ss << std::boolalpha << t) ? ss.str() : std::string("??");
+}
+
+template <typename T>
+auto to_string(const T&) -> for_non_container_non_pointer_non_fundamental<T, std::string>
+{
+	return std::string("??");
 }
 
 template <typename Rep, typename Period>
