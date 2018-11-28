@@ -265,9 +265,9 @@ enum test_status
 	passed,
 	testno
 };
-inline unsigned& get(int i)
+inline std::atomic<uint32_t>& get(int i)
 {
-	static unsigned var[testno + 1] = {0, 0, 0};
+    static std::atomic<uint32_t> var[testno + 1];
 	return var[i];
 }
 
@@ -340,16 +340,18 @@ class check
 	{
 		~summary_reporter()
 		{
-			std::string run = to_string(get(testno));
+            uint32_t total_asserts = get(testno);
+            uint32_t failed_asserts = get(failed);
+			std::string run = to_string(total_asserts);
 			std::string res = get(failed) ? "[FAIL]  " : "[ OK ]  ";
 			std::string ss;
-			if(get(failed))
-				ss += res + "Failure! " + to_string(get(failed)) + '/' + run + " checks failed :(\n";
+			if(failed_asserts > 0)
+				ss += res + "Failure! " + to_string(failed_asserts) + '/' + run + " checks failed :(\n";
 			else
 				ss += res + "Success: " + run + " checks passed :)\n";
 			fprintf(stdout, "\n%s", ss.c_str());
-			if(get(failed))
-				std::exit(int(get(failed)));
+			if(failed_asserts)
+				std::exit(int(failed_asserts));
 		}
 	};
 
@@ -365,7 +367,7 @@ public:
 		static summary_reporter reporter;
 		(void)reporter;
 
-		set_label(text_); // to_string(get(TESTNO)++));
+		set_label(text_);
 	}
 
 	~check()
@@ -444,9 +446,9 @@ inline auto test(const std::string& text, const std::function<void()>& fn)
 	fprintf(stdout, "%s", sep.c_str());
 
 	auto whole_case = [&]() {
-		auto fails_before = get(failed);
+		uint32_t fails_before = get(failed);
 		fn();
-		auto fails_after = get(failed);
+		uint32_t fails_after = get(failed);
 		return fails_before == fails_after;
 	};
 	whole_case();
