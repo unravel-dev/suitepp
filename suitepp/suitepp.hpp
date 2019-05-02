@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <atomic>
 
 #define SUITEPP_STR(s) #s
 #define SUITEPP_JOIN(str, num) str##num
