@@ -113,6 +113,7 @@
 #define EXPECT_THROWS(expr) SUITEPP_EXPECT_THROWS(expr)
 #define EXPECT_THROWS_AS(expr, exception_type) SUITEPP_EXPECT_THROWS_AS(expr, exception_type)
 #define EXPECT_NOTHROWS(expr) SUITEPP_EXPECT_NOTHROWS(expr)
+#define TEST_CASE(name) suitepp::test_case(name, __FILE__, __LINE__).test = [&]
 
 namespace suitepp
 {
@@ -260,18 +261,6 @@ auto to_string(const L& lhs, std::string op, const R& rhs) -> std::string
 	return os.str();
 }
 
-enum test_status
-{
-	failed,
-	passed,
-	testno
-};
-inline std::atomic<uint32_t>& get(int i)
-{
-    static std::atomic<uint32_t> var[testno + 1];
-	return var[i];
-}
-
 struct result
 {
 	result() = default;
@@ -335,40 +324,96 @@ struct expression_decomposer
 	}
 };
 
-class check
+inline std::string get_file_name(const std::string& s)
 {
-	struct summary_reporter
+   char sep = '/';
+
+   size_t i = s.rfind(sep, s.length());
+   if (i != std::string::npos)
+   {
+      return(s.substr(i+1, s.length() - i));
+   }
+
+   return s;
+}
+
+enum test_status
+{
+	failed,
+	passed,
+	testno
+};
+inline std::atomic<uint32_t>& get(int i)
+{
+    static std::atomic<uint32_t> var[testno + 1];
+	return var[i];
+}
+
+
+struct summary_reporter
+{
+    ~summary_reporter()
+    {
+        std::string run = to_string(get(testno));
+        std::string res = get(failed) ? "[FAIL]  " : "[ OK ]  ";
+        std::string ss;
+        if(get(failed))
+            ss += res + "Failure! " + to_string(get(failed)) + '/' + run + " checks failed :(\n";
+        else
+            ss += res + "Success: " + to_string(get(passed)) + '/' + run + " checks passed :)\n";
+        fprintf(stdout, "\n%s", ss.c_str());
+        if(get(failed))
+            std::exit(int(get(failed)));
+    }
+};
+
+inline summary_reporter& get_summary()
+{
+    static summary_reporter reporter;
+    return reporter;
+}
+
+struct entry
+{
+    using duration_t = std::chrono::duration<double, std::milli>;
+
+    entry(const char* const text, const char* const file, int line)
+        : text_(text)
+        , file_(file)
+        , line_(line)
+    {
+        get_summary();
+
+        set_label(text_);
+    }
+
+    entry& set_label(const std::string& name)
 	{
-		~summary_reporter()
-		{
-            uint32_t total_asserts = get(testno);
-            uint32_t failed_asserts = get(failed);
-			std::string run = to_string(total_asserts);
-			std::string res = get(failed) ? "[FAIL]  " : "[ OK ]  ";
-			std::string ss;
-			if(failed_asserts > 0)
-				ss += res + "Failure! " + to_string(failed_asserts) + '/' + run + " checks failed :(\n";
-			else
-				ss += res + "Success: " + run + " checks passed :)\n";
-			fprintf(stdout, "\n%s", ss.c_str());
-			if(failed_asserts)
-				std::exit(int(failed_asserts));
-		}
-	};
+		label_ = name;
+		return *this;
+	}
+	entry& repeat(int iterations)
+	{
+		iterations_ = iterations;
+		return *this;
+	}
 
-	using duration_t = std::chrono::duration<double, std::milli>;
+    duration_t duration_;
+	std::string text_;
+	std::string label_;
+	std::string file_;
+	int iterations_ = 1;
+	int line_ = 0;
+};
 
+class check : public entry
+{
 public:
 	check(const char* const text, const char* const file, int line, std::function<result()> f)
-		: result_getter_(std::move(f))
-		, text_(text)
-		, file_(file)
-		, line_(line)
+		: entry(text, file, line)
+        , result_getter_(std::move(f))
 	{
-		static summary_reporter reporter;
-		(void)reporter;
 
-		set_label(text_);
 	}
 
 	~check()
@@ -392,71 +437,77 @@ public:
 			fprintf(stdout, "%s ", ok ? "[ OK ]" : "[FAIL]");
 			if(iterations_ > 1)
 			{
-				fprintf(stdout, "check %s (%d) ", label_.c_str(), i);
+				fprintf(stdout, "%s (%d) ", label_.c_str(), i);
 			}
 			else
 			{
-				fprintf(stdout, "check %s ", label_.c_str());
+				fprintf(stdout, "%s ", label_.c_str());
 			}
-			fprintf(stdout, "(%sms) ", to_string(duration_.count()).c_str());
-
-			if(!ok)
+            if(ok)
+            {
+                fprintf(stdout, "(%sms) ", to_string(duration_.count()).c_str());
+            }
+			else
 			{
-				fprintf(stdout, "at %s:%d\n", file_.c_str(), line_);
-				fprintf(stdout, "       %s\n", result.decomposition.c_str());
+				fprintf(stdout, "at %s(%d)\n", get_file_name(file_).c_str(), line_);
+				fprintf(stdout, "       %s", result.decomposition.c_str());
 			}
-			fprintf(stdout, "%s", "\n");
+			fprintf(stdout, "\n");
 		}
-	}
-
-	check& set_label(const std::string& name)
-	{
-		label_ = name;
-		return *this;
-	}
-	check& repeat(int iterations)
-	{
-		iterations_ = iterations;
-		return *this;
 	}
 
 private:
 	std::function<result()> result_getter_;
 	result result_;
-	duration_t duration_;
-	std::string text_;
-	std::string label_;
-	std::string file_;
-	int iterations_ = 1;
-	int line_ = 0;
 };
 
-inline auto test(const std::string& text, const std::function<void()>& fn)
+struct test_case : public entry
 {
-	auto title = text;
-	if(title.empty())
-		title = "Test";
+	test_case(const char* const text, const char* const file, int line)
+        : entry(text, file, line)
+    {
+	}
 
-	title = ("[[ " + title + " ]]");
-	std::string sep;
-	sep.append(title.size(), '-');
-	sep.append("\n");
-	fprintf(stdout, "\n");
-	fprintf(stdout, "%s", sep.c_str());
-	fprintf(stdout, "%s\n", title.c_str());
-	fprintf(stdout, "%s", sep.c_str());
+	~test_case()
+	{
+		if(!test)
+		{
+			return;
+		}
 
-	auto whole_case = [&]() {
-		uint32_t fails_before = get(failed);
-		fn();
-		uint32_t fails_after = get(failed);
-		return fails_before == fails_after;
-	};
-	whole_case();
-	fprintf(stdout, "%s", sep.c_str());
+		if(label_.empty())
+			label_ = "Test";
 
-	return true;
-}
+		label_ = "[[ " + label_ + " ]]";
+
+		std::string sep;
+		sep.append(label_.size(), '-');
+		sep.append("\n");
+
+		fprintf(stdout, "\n");
+		fprintf(stdout, "%s", sep.c_str());
+		fprintf(stdout, "%s\n", label_.c_str());
+		fprintf(stdout, "%s", sep.c_str());
+
+		auto whole_case = [&]() {
+			uint32_t fails_before = get(failed);
+			test();
+			uint32_t fails_after = get(failed);
+			return fails_before == fails_after;
+		};
+		if(!whole_case())
+        {
+//            fprintf(stdout, "%s", sep.c_str());
+//            fprintf(stdout, "%s [FAIL]\n", label_.c_str());
+        }
+		fprintf(stdout, "%s", sep.c_str());
+	}
+
+	std::function<void()> test;
+
+
+};
+
 }
 
 #endif
