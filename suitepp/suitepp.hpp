@@ -377,7 +377,7 @@ struct entry
 {
     using duration_t = std::chrono::duration<double, std::milli>;
 
-    entry(const char* const text, const char* const file, int line)
+    entry(const std::string& text, const char* const file, int line)
         : text_(text)
         , file_(file)
         , line_(line)
@@ -463,7 +463,7 @@ private:
 
 struct test_case : public entry
 {
-	test_case(const char* const text, const char* const file, int line)
+	test_case(const std::string& text, const char* const file, int line)
         : entry(text, file, line)
     {
 	}
