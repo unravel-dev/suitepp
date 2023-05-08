@@ -1,13 +1,14 @@
 # suitepp - c++11 header only unit testing library
 
-### No dependecnies, just 1 small header only
+### No dependecnies
+### Supports BDD-Style Syntax
 
 ### Provides a simple api and a semi-decent output that does the job.
 
 ```C++
 int main()
 {
-    suitepp::test("test1", []()
+    TEST_CASE("test1")
     {
         int a = 12;
         EXPECT(a == 12);
@@ -19,7 +20,7 @@ int main()
         EXPECT_NOTHROWS(expression());
         EXPECT_THROWS(expression());
         EXPECT_THROWS_AS(expression(), std::exception);
-    });
+    };
     return 0;
 }
 ```
