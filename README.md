@@ -5,7 +5,7 @@
 
 ### Provides a simple api and a semi-decent output that does the job.
 
-```C++
+```
 int main()
 {
     TEST_CASE("test1")
@@ -26,7 +26,7 @@ int main()
 ```
 
 would output something like
-```C++
+```
 -----------
 [[ test1 ]]
 -----------
