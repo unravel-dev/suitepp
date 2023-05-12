@@ -535,10 +535,10 @@ struct entry
 		return *this;
 	}
 
-	virtual bool run(const std::function<void()>& func = {})
+	virtual bool run(const std::function<void()>& /*func*/ = {})
 	{
 		return true;
-	};
+	}
 
 	duration_t duration_;
 	std::string text_;
@@ -578,7 +578,7 @@ public:
 	{
 	}
 
-	bool run(const std::function<void()>& func = {}) override
+	bool run(const std::function<void()>& /*func*/ = {}) override
 	{
 		if(text_.empty() || result_getter_ == nullptr || skip_remaining_cases())
 		{
