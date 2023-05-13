@@ -1,5 +1,4 @@
 #pragma once
-#include "if_constexpr.hpp"
 #include "is_detected.hpp"
 #include "logical.hpp"
 
@@ -142,37 +141,6 @@ struct range_underlying_value : iterator_value<decltype(std::cbegin(std::declval
 template <>
 struct range_underlying_value<const char*> : iterator_value<const char*>
 {
-};
-
-template <typename T>
-struct container_helper
-{
-	static void resize_impl(T& val, size_t sz)
-	{
-		val.resize(sz);
-	}
-	static void clear_impl(T& val)
-	{
-		val.clear();
-	}
-
-	static void resize(T& val, size_t sz)
-	{
-		if_constexpr(traits::is_resizeable<T>::value)
-		{
-			container_helper<T>::resize_impl(val, sz);
-		}
-		end_if_constexpr;
-	}
-
-	static void clear(T& val)
-	{
-		if_constexpr(traits::is_clearable<T>::value)
-		{
-			container_helper<T>::clear_impl(val);
-		}
-		end_if_constexpr;
-	}
 };
 
 } // namespace traits
